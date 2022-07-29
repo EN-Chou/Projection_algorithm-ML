@@ -6,8 +6,8 @@ using namespace std;
 #define PI 3.1415926
 #define N 81
 #define delta_t 0.0001
-#define tol_vel pow(10, -6)
-#define tol_p pow(10, -6)
+#define tol_vel pow(10, -3)
+#define tol_p pow(10, -2)
 #define Re 100
 double h=1.0/(N-1.0);
 
@@ -28,14 +28,14 @@ char name1[] = "velocity.csv", name2[] = "u.csv", name3[] = "v.csv", name4[] = "
 
 int main(){
     //test section
-    init_u();
-    init_v();
 
     while(velocity_not_converge()||timestep<100){
         if(timestep%1==0){
-            cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel()<<endl;
+            cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel();
         }
         timestep++;
+        init_u();
+        init_v();
         init_p();
         //step 1
         cal_fake_u();
@@ -66,14 +66,22 @@ int main(){
 void init_u(){
     for(int i=0; i<N; i++){
         /*Implement*/
-        u[0][i]=2-u[0][i];
-        u[N][i]=-u[N-1][i];
-        u[i][0]=-u[i][1];
-        u[i][N-1]=-u[i][N-2];
+        u[0][i]=2-u[1][i]; u_fake[0][i]=2-u_fake[1][i];
+        u[N][i]=-u[N-1][i]; u_fake[N][i]=-u_fake[N-1][i];
+        u[i][0]=-u[i][1]; u_fake[i][0]=-u_fake[i][1];
+        u[i][N-1]=-u[i][N-2]; u_fake[i][N-1]=-u_fake[i][N-2];
     }
 }
 
-void init_v(){}
+void init_v(){
+    for(int i=0; i<N; i++){
+        /*Implement*/
+        v[0][i]=-v[1][i]; v_fake[0][i]=-v_fake[1][i];
+        v[N-1][i]=-v[N-2][i]; v_fake[N-1][i]=-v_fake[N-2][i];
+        v[i][0]=-v[i][1]; v_fake[i][0]=-v_fake[i][1];
+        v[i][N]=-v[i][N-1]; v_fake[i][N]=-v_fake[i][N-1];
+    }
+    }
 
 void init_p(){
     /*Implement*/
@@ -122,55 +130,68 @@ void cal_fake_v(){
 }
 
 void cal_p(){
-    int i,j, te=2;
+    int i,j;
     double term_poisson_left;
     double u_fake_e, u_fake_w, v_fake_n, v_fake_s;
     iteration=0;
     do{
-        iteration++, dev_p=0;
+        iteration++, dev_p=0; double p_1=0;
         /*Implement*/
         for(i=1; i<N+1; i++){
             for(j=1; j<N+1; j++){
+                p_1=p[i][j];
                 u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i][j-1]; v_fake_n=v[i-1][j]; v_fake_s=v[i][j];
                 // term_poisson_left=....
                 term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 p[i][j]=0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h);
-
+                dev_p+=fabs(p[i][j]-p_1);
             }
         }
+        //init_p();
 
         res_p=0;
-        for(i=0;i<N+1; i++){
-            for(j=0; j<N+1; j++){
+        for(i=1;i<N+1; i++){
+            for(j=1; j<N+1; j++){
+                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i][j-1]; v_fake_n=v[i-1][j]; v_fake_s=v[i][j];
                 // term_poisson_left=....
                 term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
-                res_p+=abs(p[i][j]-(0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h)));
+                res_p+=fabs(p[i][j]-(0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h)));
             }
         }
 
-        if(iteration%100==0) //iteration%100
+        if(iteration%1000==0){//iteration%100
             cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<"  dev:    "<<dev_p<<endl;
+            init_p();
+            
+        } 
+
 
     }while(pressure_not_converge());
-    cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
+    cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
 }
 
 void cal_u(){
-        /*Implement*/
-        for(int i=0; i<N+1;i++){
-            for(int j=0; j<N; j++){
-                u[i][j]=u_fake[i][j]-delta_t*(p[i][j+1]-p[i][j]);
-            }
+    /*Implement*/
+    res_vel=0;
+    for(int i=0; i<N+1;i++){
+        for(int j=0; j<N; j++){
+            u_1[i][j]=u[i][j];
+            u[i][j]=u_fake[i][j]-delta_t*(p[i][j+1]-p[i][j]);
+            res_vel=fabs(u[i][j]-u_1[i][j]);
         }
+    }
 }
 
 void cal_v(){
-        /*Implement*/
-        for(int i=0; i<N;i++){
-            for(int j=0; j<N+1; j++){
-                v[i][j]=v_fake[i][j]-delta_t*(p[i][j]-p[i+1][j]);
-            }
+    /*Implement*/
+    for(int i=0; i<N;i++){
+        for(int j=0; j<N+1; j++){
+            v_1[i][j]=v[i][j];
+            v[i][j]=v_fake[i][j]-delta_t*(p[i][j]-p[i+1][j]);
+            res_vel=fabs(u[i][j]-u_1[i][j]);
         }
+    }
+    
 }
 
 bool pressure_not_converge(){
