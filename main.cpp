@@ -87,11 +87,17 @@ void init_p(){
 
 void cal_fake_u(){
     /*Implement*/
+    double v_p;
+    double u_e, u_w, u_n, u_s;
     double C,D;
     for(int i=1; i<N; i++){
         for(int j=1; j<N-1; j++){
-            // C=....
+            v_p=(v[i-1][j]+v[i][j]+v[i-1][j+1]+v[i][j+1])*0.25;
+            u_e=(u[i][j]+u[i][j+1])*0.5; u_w=(u[i][j-1]+u[i][j])*0.5; u_n=(u[i-1][j]+u[i][j])*0.5;
+            // C=u_p*(u_e-u_w)/h+v_p*(u_n-u_s)/h
+            C=u[i][j]*(u_e-u_w)/h+v_p*(u_n-u_s)/h;
             // D=....
+            D=1/Re*(u_e+u_w+u_n+u_s-4*u[i][j])/(h*h);
             u_fake[i][j]=(D-C)*delta_t+u[i][j];
         }
     }
@@ -99,11 +105,17 @@ void cal_fake_u(){
 
 void cal_fake_v(){
     /*Implement*/
+    double u_p;
+    double v_e, v_w, v_n, v_s;
     double C,D;
     for(int i=1; i<N; i++){
         for(int j=1; j<N-1; j++){
+            u_p=(u[i][j-1]+u[i][j]+u[i+1][j-1]+u[i+1][j])*0.25;
+            v_e=(v[i][j]+v[i][j+1])*0.5; v_w=(v[i][j-1]+v[i][j])*0.5; v_n=(v[i-1][j]+v[i][j])*0.5;
             // C=....
+            C=u_p*(v_e-v_w)/h+v[i][j]*(v_n-v_s)/h;
             // D=....
+            D=1/Re*(v_e+v_w+v_n+v_s-4*v[i][j])/(h*h);
             v_fake[i][j]=(D-C)*delta_t+v[i][j];
         }
     }
@@ -112,19 +124,29 @@ void cal_fake_v(){
 void cal_p(){
     int i,j, te=2;
     double term_poisson_left;
+    double u_fake_e, u_fake_w, v_fake_n, v_fake_s;
     iteration=0;
     do{
         iteration++, dev_p=0;
         /*Implement*/
         for(i=1; i<N+1; i++){
             for(j=1; j<N+1; j++){
+                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i][j-1]; v_fake_n=v[i-1][j]; v_fake_s=v[i][j];
                 // term_poisson_left=....
+                term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 p[i][j]=0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h);
 
             }
         }
 
-        res_p
+        res_p=0;
+        for(i=0;i<N+1; i++){
+            for(j=0; j<N+1; j++){
+                // term_poisson_left=....
+                term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
+                res_p+=abs(p[i][j]-(0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h)));
+            }
+        }
 
         if(iteration%100==0) //iteration%100
             cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<"  dev:    "<<dev_p<<endl;
@@ -133,14 +155,22 @@ void cal_p(){
     cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
 }
 
-
-
 void cal_u(){
         /*Implement*/
+        for(int i=0; i<N+1;i++){
+            for(int j=0; j<N; j++){
+                u[i][j]=u_fake[i][j]-delta_t*(p[i][j+1]-p[i][j]);
+            }
+        }
 }
 
 void cal_v(){
         /*Implement*/
+        for(int i=0; i<N;i++){
+            for(int j=0; j<N+1; j++){
+                v[i][j]=v_fake[i][j]-delta_t*(p[i][j]-p[i+1][j]);
+            }
+        }
 }
 
 bool pressure_not_converge(){
