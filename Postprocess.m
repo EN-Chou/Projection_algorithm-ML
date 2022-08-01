@@ -6,16 +6,25 @@
 load u.dat
 load v.dat
 load velocity.dat
+load p.dat
+velocity=(u.^2+v.^2).^0.5;
 
 figure(1)
-imagesc(u);
+contourf(u);
+set(gca,'Ydir','reverse')
 axis square
-% figure(2)
-% imagesc(v);
-% axis square
-% figure(3)
-% imagesc(vel);
-% axis square
-% figure(4)
-% imagesc(p);
-% axis square
+figure(2)
+contourf(v);
+set(gca,'Ydir','reverse')
+axis square
+figure(3)
+hold on
+contourf(velocity);
+%quiver(u(1:10:end),v(1:10:end));
+set(gca,'Ydir','reverse')
+axis square
+hold off
+figure(4)
+contourf(p);
+set(gca,'Ydir','reverse')
+axis square

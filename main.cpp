@@ -6,15 +6,15 @@ using namespace std;
 #define PI 3.1415926
 #define N 81
 #define delta_t 0.001
-#define tol_vel pow(10, -6)
+#define tol_vel pow(10, -8)
 #define tol_p pow(10, -6)
 #define Re 100
 double h=1.0/(N-1.0);
 
-double p[N+1][N+1]={0.0}, u[N+1][N]={0.0}, v[N][N+1]={0.0}; //current
+double p[N+1][N+1]={1.0}, u[N+1][N]={0.0}, v[N][N+1]={0.0}; //current
 double u_fake[N+1][N]={0.0}, v_fake[N][N+1]={0.0};
-double p_1[N+1][N+1]={0.0}, u_1[N+1][N]={0.0}, v_1[N][N+1]={0.0}; //previous
-double p_c[N][N]={0.0}, u_c[N][N]={0.0}, v_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
+double p_1[N+1][N+1]={1.0}, u_1[N+1][N]={0.0}, v_1[N][N+1]={0.0}; //previous
+double p_c[N][N]={1.0}, u_c[N][N]={0.0}, v_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
 double res_vel=1.0, res_p=1.0, dev_p=1.0;
 int iteration, timestep=0;
 
@@ -25,8 +25,12 @@ bool velocity_not_converge(), pressure_not_converge();
 void output(), collocate(), write(double* a, int x, int y, char name[]);
 double div_vel();
 char name1[] = "velocity.dat", name2[] = "u.dat", name3[] = "v.dat", name4[] = "p.dat";
+char name5[]="time_iterations.dat", name6[]="training_input.dat", name7[]="training_output.dat";
+ofstream myfile5(name5), myfile6(name6);
 
 int main(){
+
+    myfile5<< "time, iterations"<<endl;
     //test section
     init_u();
     init_v();
@@ -34,7 +38,7 @@ int main(){
 
     while(velocity_not_converge()||timestep<100){
         if(timestep%1==0){
-            cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel();
+            cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel(); 
         }
         timestep++;
         //step 1
@@ -57,6 +61,7 @@ int main(){
     
 	write(&u[0][0], N+1, N, name2);
     //output();
+	myfile5.close();
     return 0;
 }
 
@@ -100,7 +105,7 @@ void cal_fake_u(){
             // C=u_p*(u_e-u_w)/h+v_p*(u_n-u_s)/h
             C=u[i][j]*(u_e-u_w)/h+v_p*(u_n-u_s)/h;
             // D=....
-            D=1/Re*(u_e+u_w+u_n+u_s-4*u[i][j])/(h*h);
+            D=1.0/Re*(u_e+u_w+u_n+u_s-4*u[i][j])/(h*h);
             u_fake[i][j]=(D-C)*delta_t+u[i][j];
         }
     }
@@ -117,7 +122,7 @@ void cal_fake_v(){
             // C=....
             C=u_p*(v_e-v_w)/h+v[i][j]*(v_n-v_s)/h;
             // D=....
-            D=1/Re*(v_e+v_w+v_n+v_s-4*v[i][j])/(h*h);
+            D=1.0/Re*(v_e+v_w+v_n+v_s-4*v[i][j])/(h*h);
             v_fake[i][j]=(D-C)*delta_t+v[i][j];
         }
     }
@@ -153,7 +158,7 @@ void cal_p(){
             }
         }
 
-        if(0){//iteration%1000
+        if(0 ){//iteration%1000
             cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<"  dev:    "<<dev_p<<endl;
             //init_p();
         } 
@@ -161,6 +166,7 @@ void cal_p(){
 
     }while(pressure_not_converge());
     cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
+	myfile5<< timestep*delta_t<< ","<<iteration<<endl;
 }
 void cal_u(){
     /*Implement*/
@@ -241,3 +247,4 @@ void output(){
 	write(&p_c[0][0], N, N, name4);
     return;
 }
+
