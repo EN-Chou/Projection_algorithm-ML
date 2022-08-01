@@ -6,8 +6,8 @@ using namespace std;
 #define PI 3.1415926
 #define N 81
 #define delta_t 0.001
-#define tol_vel pow(10, -3)
-#define tol_p pow(10, -2)
+#define tol_vel pow(10, -6)
+#define tol_p pow(10, -6)
 #define Re 100
 double h=1.0/(N-1.0);
 
@@ -24,7 +24,7 @@ void cal_fake_u(), cal_fake_v(), cal_p(), cal_u(), cal_v();
 bool velocity_not_converge(), pressure_not_converge();
 void output(), collocate(), write(double* a, int x, int y, char name[]);
 double div_vel();
-char name1[] = "velocity.csv", name2[] = "u.csv", name3[] = "v.csv", name4[] = "p.csv";
+char name1[] = "velocity.dat", name2[] = "u.dat", name3[] = "v.dat", name4[] = "p.dat";
 
 int main(){
     //test section
@@ -50,8 +50,13 @@ int main(){
         init_u();
         cal_v();
         init_v();
+        if(timestep%10==0)
+            output();
+
     }
-    output();
+    
+	write(&u[0][0], N+1, N, name2);
+    //output();
     return 0;
 }
 
@@ -91,7 +96,7 @@ void cal_fake_u(){
     for(int i=1; i<N; i++){
         for(int j=1; j<N-1; j++){
             v_p=(v[i-1][j]+v[i][j]+v[i-1][j+1]+v[i][j+1])*0.25;
-            u_e=(u[i][j]+u[i][j+1])*0.5; u_w=(u[i][j-1]+u[i][j])*0.5; u_n=(u[i-1][j]+u[i][j])*0.5;
+            u_e=(u[i][j]+u[i][j+1])*0.5; u_w=(u[i][j-1]+u[i][j])*0.5; u_n=(u[i-1][j]+u[i][j])*0.5; u_s=(u[i+1][j]+u[i][j])*0.5;
             // C=u_p*(u_e-u_w)/h+v_p*(u_n-u_s)/h
             C=u[i][j]*(u_e-u_w)/h+v_p*(u_n-u_s)/h;
             // D=....
@@ -108,7 +113,7 @@ void cal_fake_v(){
     for(int i=1; i<N; i++){
         for(int j=1; j<N-1; j++){
             u_p=(u[i][j-1]+u[i][j]+u[i+1][j-1]+u[i+1][j])*0.25;
-            v_e=(v[i][j]+v[i][j+1])*0.5; v_w=(v[i][j-1]+v[i][j])*0.5; v_n=(v[i-1][j]+v[i][j])*0.5;
+            v_e=(v[i][j]+v[i][j+1])*0.5; v_w=(v[i][j-1]+v[i][j])*0.5; v_n=(v[i-1][j]+v[i][j])*0.5; v_s=(v[i+1][j]+v[i][j])*0.5;
             // C=....
             C=u_p*(v_e-v_w)/h+v[i][j]*(v_n-v_s)/h;
             // D=....
@@ -160,20 +165,20 @@ void cal_p(){
 void cal_u(){
     /*Implement*/
     res_vel=0;
-    for(int i=0; i<N+1;i++){
-        for(int j=0; j<N; j++){
+    for(int i=1; i<N;i++){
+        for(int j=1; j<N-1; j++){
             u_1[i][j]=u[i][j];
-            u[i][j]=u_fake[i][j]-delta_t*(p[i][j+1]-p[i][j]);
+            u[i][j]=u_fake[i][j]-delta_t*(p[i][j+1]-p[i][j])/h;
             res_vel=fabs(u[i][j]-u_1[i][j]);
         }
     }
 }
 void cal_v(){
     /*Implement*/
-    for(int i=0; i<N;i++){
-        for(int j=0; j<N+1; j++){
+    for(int i=1; i<N-1;i++){
+        for(int j=1; j<N; j++){
             v_1[i][j]=v[i][j];
-            v[i][j]=v_fake[i][j]-delta_t*(p[i][j]-p[i+1][j]);
+            v[i][j]=v_fake[i][j]-delta_t*(p[i][j]-p[i+1][j])/h;
             res_vel=fabs(v[i][j]-v_1[i][j]);
         }
     }

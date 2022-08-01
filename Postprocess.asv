@@ -3,19 +3,17 @@
 %m_grid=xlsread('result.csv', 'A1:FE161');
 %m_grid=xlsread('result.csv', 'A1:IG241');
 
-load u.dat
-load v.dat
-load velocity.dat
+u_grid=xlsread('result.csv', 'A1:CC81');
 
 figure(1)
-imagesc(u);
+imagesc(u_grid);
 axis square
-% figure(2)
-% imagesc(v);
-% axis square
-% figure(3)
-% imagesc(vel);
-% axis square
-% figure(4)
-% imagesc(p);
-% axis square
+figure(2)
+imagesc(v_grid);
+axis square
+figure(3)
+imagesc(p_grid);
+axis square
+figure(4)
+imagesc(vel_grid);
+axis square
