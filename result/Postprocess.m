@@ -9,14 +9,14 @@ load velocity.dat
 load p.dat
 velocity=(u.^2+v.^2).^0.5;
 
-figure(1)
-contourf(u);
-set(gca,'Ydir','reverse')
-axis square
-figure(2)
-contourf(v);
-set(gca,'Ydir','reverse')
-axis square
+% figure(1)
+% contourf(u);
+% set(gca,'Ydir','reverse')
+% axis square
+% figure(2)
+% contourf(v);
+% set(gca,'Ydir','reverse')
+% axis square
 figure(3)
 hold on
 contourf(velocity);
@@ -24,7 +24,7 @@ contourf(velocity);
 set(gca,'Ydir','reverse')
 axis square
 hold off
-figure(4)
-contourf(p);
-set(gca,'Ydir','reverse')
-axis square
+% figure(4)
+% contourf(p);
+% set(gca,'Ydir','reverse')
+% axis square
