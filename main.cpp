@@ -5,10 +5,10 @@ using namespace std;
 
 #define PI 3.1415926
 #define N 81
-#define delta_t 0.001
-#define tol_vel pow(10, -8)
-#define tol_p pow(10, -6)
-#define Re 100
+#define delta_t 0.00005
+#define tol_vel pow(10, -14)
+#define tol_p pow(10, -2)
+#define Re 5000
 double h=1.0/(N-1.0);
 
 double p[N+1][N+1]={1.0}, u[N+1][N]={0.0}, v[N][N+1]={0.0}; //current
@@ -17,20 +17,18 @@ double p_1[N+1][N+1]={1.0}, u_1[N+1][N]={0.0}, v_1[N][N+1]={0.0}; //previous
 double p_c[N][N]={1.0}, u_c[N][N]={0.0}, v_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
 double res_vel=1.0, res_p=1.0, dev_p=1.0;
 int iteration, timestep=0;
-
+bool record=false;
 
 void init_u(), init_v(), init_p();
 void cal_fake_u(), cal_fake_v(), cal_p(), cal_u(), cal_v();
 bool velocity_not_converge(), pressure_not_converge();
-void output(), collocate(), write(double* a, int x, int y, char name[]);
+void output(), collocate(), write(double* a, int x, int y, char name[]), write_train();
 double div_vel();
-char name1[] = "velocity.dat", name2[] = "u.dat", name3[] = "v.dat", name4[] = "p.dat";
-char name5[]="time_iterations.dat", name6[]="training_input.dat", name7[]="training_output.dat";
-ofstream myfile5(name5), myfile6(name6);
+char name1[] = "./result/velocity.dat", name2[] = "./result/u.dat", name3[] = "./result/v.dat", name4[] = "./result/p.dat";
+char name5[]="./result/time_iterations.dat", name6[]="./result/training_input_1.dat", name7[]="./result/training_input_2.dat",  name8[]="./result/training_output.dat";
+ofstream myfile5(name5), myfile6(name6), myfile7(name7), myfile8(name8);
 
 int main(){
-
-    myfile5<< "time, iterations"<<endl;
     //test section
     init_u();
     init_v();
@@ -59,9 +57,9 @@ int main(){
 
     }
     
-	write(&u[0][0], N+1, N, name2);
-    //output();
-	myfile5.close();
+    output();
+    if(record)
+    	myfile5.close(), myfile6.close(), myfile7.close(), myfile8.close();
     return 0;
 }
 
@@ -146,7 +144,6 @@ void cal_p(){
                 dev_p+=fabs(p[i][j]-p_1);
             }
         }
-        //init_p();
 
         res_p=0;
         for(i=1;i<N+1; i++){
@@ -158,15 +155,17 @@ void cal_p(){
             }
         }
 
-        if(0 ){//iteration%1000
+        if(0){//iteration%1000
             cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<"  dev:    "<<dev_p<<endl;
             //init_p();
         } 
-
-
     }while(pressure_not_converge());
     cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
-	myfile5<< timestep*delta_t<< ","<<iteration<<endl;
+
+    if(record){
+	    myfile5<< timestep*delta_t<< ","<<iteration<<endl;
+        write_train();  
+    }
 }
 void cal_u(){
     /*Implement*/
@@ -214,6 +213,26 @@ double div_vel(){
     return div;
 }
 
+void write_train() {
+	int i, j;
+	for (i = 0; i < N+1; i++) {
+		for (j = 0; j < N; j++) {
+			myfile6 << u_fake[i][j] << ",";
+		}
+	}
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N+1; j++) {
+			myfile7 << v_fake[i][j] << ",";
+		}
+	}
+	for (i = 0; i < N+1; i++) {
+		for (j = 0; j < N+1; j++) {
+			myfile8 << p[i][j] << ",";
+		}
+	}
+	myfile6 << endl, myfile7 << endl, myfile8 << endl;
+	return;
+}
 void write(double* a, int x, int y, char name[]) {
 	ofstream myfile(name);
 	int i, j;
