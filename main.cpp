@@ -5,7 +5,7 @@
 using namespace std;
 
 //User defined area
-#define Re 1000
+#define Re 1200
 #define delta_t 0.0005
 #define record_per 200 //Record per every 0.1s is fine
 #define tol_vel pow(10, -12)
@@ -219,7 +219,6 @@ void collocate(){
         for(int j=0; j<N; j++){
             u_c[i][j]=u[i][j]+u[i+1][j];
             v_c[i][j]=v[i][j]+v[i][j+1];
-            vel_c[i][j]=pow(u_c[i][j]*u_c[i][j]+v_c[i][j]*u_c[i][j],0.5);
             p_c[i][j]=0.25*(p[i][j]+p[i][j+1]+p[i+1][j]+p[i+1][j+1]);
 
         }
@@ -229,7 +228,7 @@ void collocate(){
 
 void output(){
     if(timestep==0){
-        raw_data<<"VARIABLES=\"x\", \"y\", \"time\", \"u\", \"v\", \"vel\", \"p\""<<endl;
+        raw_data<<"VARIABLES=\"x\", \"y\", \"time\", \"u\", \"v\", \"p\""<<endl;
         raw_data<<"ZONE T=\"1\""<<endl;
         raw_data<<"F=POINT"<<endl;
         raw_data<<"I=81,J=81,K=(define)"<<endl;
@@ -237,7 +236,7 @@ void output(){
     else{
         for(int i=0; i<N; i++){
             for(int j=0; j<N; j++){
-                raw_data<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<u_c[i][j]<<"   "<<v_c[i][j]<<"   "<<vel_c[i][j]<<" "<<p_c[i][j]<<endl; 
+                raw_data<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<u_c[i][j]<<"   "<<v_c[i][j]<<"   "<<p_c[i][j]<<endl; 
 
             }
         }
