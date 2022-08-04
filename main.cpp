@@ -5,10 +5,10 @@ using namespace std;
 
 #define PI 3.1415926
 #define N 81
-#define delta_t 0.00005
-#define tol_vel pow(10, -14)
-#define tol_p pow(10, -2)
-#define Re 5000
+#define delta_t 0.001
+#define tol_vel pow(10, -9)
+#define tol_p pow(10, -6)
+#define Re 100
 double h=1.0/(N-1.0);
 
 double p[N+1][N+1]={1.0}, u[N+1][N]={0.0}, v[N][N+1]={0.0}; //current
@@ -22,11 +22,9 @@ bool record=false;
 void init_u(), init_v(), init_p();
 void cal_fake_u(), cal_fake_v(), cal_p(), cal_u(), cal_v();
 bool velocity_not_converge(), pressure_not_converge();
-void output(), collocate(), write(double* a, int x, int y, char name[]), write_train();
+void output(), collocate(), write(double* a, int x, int y, char name[]), write_train(), peek();
 double div_vel();
-char name1[] = "./result/velocity.dat", name2[] = "./result/u.dat", name3[] = "./result/v.dat", name4[] = "./result/p.dat";
-char name5[]="./result/time_iterations.dat", name6[]="./result/training_input_1.dat", name7[]="./result/training_input_2.dat",  name8[]="./result/training_output.dat";
-ofstream myfile5(name5), myfile6(name6), myfile7(name7), myfile8(name8);
+ofstream file("./result/100.dat");
 
 int main(){
     //test section
@@ -35,10 +33,10 @@ int main(){
     init_p();
 
     while(velocity_not_converge()||timestep<100){
-        if(timestep%1==0){
-            cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel(); 
-        }
-        timestep++;
+        cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel();
+        if(timestep%100==0)
+            output();
+
         //step 1
         cal_fake_u();
         init_u();
@@ -52,14 +50,12 @@ int main(){
         init_u();
         cal_v();
         init_v();
-        if(timestep%10==0)
-            output();
 
+        timestep++;
+        peek();
     }
     
     output();
-    if(record)
-    	myfile5.close(), myfile6.close(), myfile7.close(), myfile8.close();
     return 0;
 }
 
@@ -162,10 +158,6 @@ void cal_p(){
     }while(pressure_not_converge());
     cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
 
-    if(record){
-	    myfile5<< timestep*delta_t<< ","<<iteration<<endl;
-        write_train();  
-    }
 }
 void cal_u(){
     /*Implement*/
@@ -212,26 +204,37 @@ double div_vel(){
     }
     return div;
 }
+void collocate(){
+    for(int i=0; i<N; i++){
+        for(int j=0; j<N; j++){
+            u_c[i][j]=u[i][j]+u[i+1][j];
+            v_c[i][j]=v[i][j]+v[i][j+1];
+            vel_c[i][j]=pow(u_c[i][j]*u_c[i][j]+v_c[i][j]*u_c[i][j],0.5);
+            p_c[i][j]=0.25*(p[i][j]+p[i][j+1]+p[i+1][j]+p[i+1][j+1]);
 
-void write_train() {
-	int i, j;
-	for (i = 0; i < N+1; i++) {
-		for (j = 0; j < N; j++) {
-			myfile6 << u_fake[i][j] << ",";
-		}
-	}
-	for (i = 0; i < N; i++) {
-		for (j = 0; j < N+1; j++) {
-			myfile7 << v_fake[i][j] << ",";
-		}
-	}
-	for (i = 0; i < N+1; i++) {
-		for (j = 0; j < N+1; j++) {
-			myfile8 << p[i][j] << ",";
-		}
-	}
-	myfile6 << endl, myfile7 << endl, myfile8 << endl;
-	return;
+        }
+    }
+    return;
+}
+
+int FLAG=0;
+void output(){
+    if(!FLAG){
+        file<<"VARIABLES=\"x\", \"y\", \"time\", \"u\", \"v\", \"vel\", \"p\""<<endl;
+        file<<"ZONE T=\"1\""<<endl;
+        file<<"F=POINT"<<endl;
+        file<<"I=81,J=81,K=(define)"<<endl;
+        FLAG++;
+    }
+    else{
+        for(int i=0; i<N; i++){
+            for(int j=0; j<N; j++){
+                file<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<u_c[i][j]<<"   "<<v_c[i][j]<<"   "<<vel_c[i][j]<<" "<<p_c[i][j]<<endl; 
+
+            }
+        }
+    }
+    
 }
 void write(double* a, int x, int y, char name[]) {
 	ofstream myfile(name);
@@ -246,24 +249,10 @@ void write(double* a, int x, int y, char name[]) {
 	myfile.close();
 	return;
 }
-void collocate(){
-    for(int i=0; i<N; i++){
-        for(int j=0; j<N; j++){
-            u_c[i][j]=u[i][j]+u[i+1][j];
-            v_c[i][j]=v[i][j]+v[i][j+1];
-            vel_c[i][j]=pow(u_c[i][j]*u_c[i][j]+v_c[i][j]*u_c[i][j],0.5);
-            p_c[i][j]=0.25*(p[i][j]+p[i][j+1]+p[i+1][j]+p[i+1][j+1]);
 
-        }
-    }
-    return;
-}
-void output(){
+void peek(){
     collocate();
-	write(&vel_c[0][0], N, N, name1);
-	write(&u_c[0][0], N, N, name2);
-	write(&v_c[0][0], N, N, name3);
-	write(&p_c[0][0], N, N, name4);
+	write(&u_c[0][0], N, N, "./result/u.dat");
+	write(&v_c[0][0], N, N, "./result/v.dat");
     return;
 }
-
