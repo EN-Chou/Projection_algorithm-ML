@@ -1,4 +1,0 @@
-VARIABLES="x", "y", "time", "u", "v", "vel", "p"
-ZONE T="1"
-F=POINT
-I=81,J=81,K=(define)

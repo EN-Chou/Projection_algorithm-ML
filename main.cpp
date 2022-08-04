@@ -1,30 +1,41 @@
 #include <iostream>
 #include <math.h>
 #include <fstream>
+#include <string>
 using namespace std;
 
-#define PI 3.1415926
+//User defined area
+#define Re 1000
+#define delta_t 0.0005
+#define record_per 200 //Record per every 0.1s is fine
+#define tol_vel pow(10, -12)
+#define tol_p pow(10, -4)
 #define N 81
-#define delta_t 0.001
-#define tol_vel pow(10, -9)
-#define tol_p pow(10, -6)
-#define Re 100
-double h=1.0/(N-1.0);
 
+//Data exportatation 
+string directory="./raw_data/Re_"+to_string(Re); 
+ofstream raw_data(directory+"/flowfield.dat");
+ofstream step_time(directory+"/stepstoconvergence_timestep.dat");
+ofstream input_u_fake(directory+"/input_u_fake.dat");
+ofstream input_v_fake(directory+"/input_v_fake.dat");
+ofstream output_p(directory+"/output_p.dat");
+
+//Grid
 double p[N+1][N+1]={1.0}, u[N+1][N]={0.0}, v[N][N+1]={0.0}; //current
-double u_fake[N+1][N]={0.0}, v_fake[N][N+1]={0.0};
+double u_fake[N+1][N]={0.0}, v_fake[N][N+1]={0.0}; //u* and v*
 double p_1[N+1][N+1]={1.0}, u_1[N+1][N]={0.0}, v_1[N][N+1]={0.0}; //previous
 double p_c[N][N]={1.0}, u_c[N][N]={0.0}, v_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
+
+#define PI 3.1415926
+double h=1.0/(N-1.0);
 double res_vel=1.0, res_p=1.0, dev_p=1.0;
 int iteration, timestep=0;
-bool record=false;
 
 void init_u(), init_v(), init_p();
 void cal_fake_u(), cal_fake_v(), cal_p(), cal_u(), cal_v();
 bool velocity_not_converge(), pressure_not_converge();
 void output(), collocate(), write(double* a, int x, int y, char name[]), write_train(), peek();
 double div_vel();
-ofstream file("./result/100.dat");
 
 int main(){
     //test section
@@ -34,7 +45,7 @@ int main(){
 
     while(velocity_not_converge()||timestep<100){
         cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel();
-        if(timestep%100==0)
+        if(timestep%record_per==0)
             output();
 
         //step 1
@@ -55,7 +66,6 @@ int main(){
         peek();
     }
     
-    output();
     return 0;
 }
 
@@ -217,19 +227,17 @@ void collocate(){
     return;
 }
 
-int FLAG=0;
 void output(){
-    if(!FLAG){
-        file<<"VARIABLES=\"x\", \"y\", \"time\", \"u\", \"v\", \"vel\", \"p\""<<endl;
-        file<<"ZONE T=\"1\""<<endl;
-        file<<"F=POINT"<<endl;
-        file<<"I=81,J=81,K=(define)"<<endl;
-        FLAG++;
+    if(timestep==0){
+        raw_data<<"VARIABLES=\"x\", \"y\", \"time\", \"u\", \"v\", \"vel\", \"p\""<<endl;
+        raw_data<<"ZONE T=\"1\""<<endl;
+        raw_data<<"F=POINT"<<endl;
+        raw_data<<"I=81,J=81,K=(define)"<<endl;
     }
     else{
         for(int i=0; i<N; i++){
             for(int j=0; j<N; j++){
-                file<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<u_c[i][j]<<"   "<<v_c[i][j]<<"   "<<vel_c[i][j]<<" "<<p_c[i][j]<<endl; 
+                raw_data<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<u_c[i][j]<<"   "<<v_c[i][j]<<"   "<<vel_c[i][j]<<" "<<p_c[i][j]<<endl; 
 
             }
         }
@@ -237,22 +245,21 @@ void output(){
     
 }
 void write(double* a, int x, int y, char name[]) {
-	ofstream myfile(name);
+	ofstream file(name);
 	int i, j;
 	for (i = 0; i < y; i++) {
 		for (j = 0; j < x; j++) {
-			myfile << *(a + i * x + j) << ",";
+			file << *(a + i * x + j) << ",";
 		}
-		myfile << endl;
+		file << endl;
 	}
 
-	myfile.close();
+	file.close();
 	return;
 }
-
 void peek(){
     collocate();
-	write(&u_c[0][0], N, N, "./result/u.dat");
-	write(&v_c[0][0], N, N, "./result/v.dat");
+	write(&u_c[0][0], N, N, "./peek/u.dat");
+	write(&v_c[0][0], N, N, "./peek/v.dat");
     return;
 }
