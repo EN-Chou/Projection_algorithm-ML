@@ -5,8 +5,6 @@
 
 load u.dat
 load v.dat
-load velocity.dat
-load p.dat
 velocity=(u.^2+v.^2).^0.5;
 
 % figure(1)
