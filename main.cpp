@@ -6,8 +6,8 @@ using namespace std;
 
 //User defined area
 #define Re 100
-#define delta_t 0.001
-#define record_per 100 //Record per every 0.1s is fine
+#define delta_t 0.0001
+#define record_per 1000 //Record per every 0.1s is fine
 #define tol_vel pow(10, -10)
 #define tol_p pow(50, -1)
 #define N 81
@@ -104,10 +104,10 @@ void cal_fake_u(){
     double C,D;
     for(int i=1; i<N-1; i++){
         for(int j=1; j<N; j++){
-            v_p=(v[i][j-1]+v[i][j]+v[i+1][j-1]+v[i+1][j])*0.25;
-            u_e=(u[i][j]+u[i][j+1])*0.5; u_w=(u[i][j-1]+u[i][j])*0.5; u_n=(u[i-1][j]+u[i][j])*0.5; u_s=(u[i+1][j]+u[i][j])*0.5;
+            v_p=(v[i][j]+v[i+1][j]+v[i][j-1]+v[i+1][j-1])*0.25;
+            u_e=(u[i][j]+u[i+1][j])*0.5; u_w=(u[i-1][j]+u[i][j])*0.5; u_n=(u[i][j]+u[i][j+1])*0.5; u_s=(u[i][j]+u[i][j-1])*0.5;
             // C=....
-            C=v_p*(u_e-u_w)/h+u[i][j]*(u_n-u_s)/h;
+            C=u[i][j]*(u_e-u_w)/h+v_p*(u_n-u_s)/h;
             // D=....
             D=1.0/Re*(u_e+u_w+u_n+u_s-4*u[i][j])/(h*h);
             u_fake[i][j]=(D-C)*delta_t+u[i][j];
@@ -122,9 +122,9 @@ void cal_fake_v(){
     for(int i=1; i<N; i++){
         for(int j=1; j<N-1; j++){
             u_p=(u[i-1][j]+u[i][j]+u[i-1][j+1]+u[i][j+1])*0.25;
-            v_e=(v[i][j]+v[i][j+1])*0.5; v_w=(v[i][j-1]+v[i][j])*0.5; v_n=(v[i-1][j]+v[i][j])*0.5; v_s=(v[i+1][j]+v[i][j])*0.5;
+            v_e=(v[i+1][j]+v[i][j])*0.5; v_w=(v[i-1][j]+v[i][j])*0.5; v_n=(v[i][j]+v[i][j+1])*0.5; v_s=(v[i][j]+v[i][j-1])*0.5;
             // C=v_p*(v_e-v_w)/h+u_p*(v_n-v_s)/h
-            C=v[i][j]*(v_e-v_w)/h+u_p*(v_n-v_s)/h;
+            C=u_p*(v_e-v_w)/h+v[i][j]*(v_n-v_s)/h;
             // D=....
             D=1.0/Re*(v_e+v_w+v_n+v_s-4*v[i][j])/(h*h);
             v_fake[i][j]=(D-C)*delta_t+v[i][j];
@@ -135,7 +135,7 @@ void cal_fake_v(){
 void cal_p(){
     int i,j;
     double term_poisson_left;
-    double v_fake_e, v_fake_w, u_fake_n, u_fake_s;
+    double u_fake_e, u_fake_w, v_fake_n, v_fake_s;
     iteration=0;
     do{
         iteration++, dev_p=0; double p_1=0;
@@ -143,9 +143,9 @@ void cal_p(){
         for(i=1; i<N+1; i++){
             for(j=1; j<N+1; j++){
                 p_1=p[i][j];
-                v_fake_e=v_fake[i][j]; v_fake_w=v_fake[i][j-1]; u_fake_n=u[i-1][j]; u_fake_s=u[i][j];
+                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=u[i][j]; v_fake_s=u[i][j-1];
                 // term_poisson_left=....
-                term_poisson_left=(v_fake_e-v_fake_w+u_fake_n-u_fake_s)/h/delta_t;
+                term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 p[i][j]=0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h);
                 dev_p+=fabs(p[i][j]-p_1);
             }
@@ -154,9 +154,9 @@ void cal_p(){
         res_p=0;
         for(i=1;i<N+1; i++){
             for(j=1; j<N+1; j++){
-                v_fake_e=v_fake[i][j]; v_fake_w=v_fake[i][j-1]; u_fake_n=u[i-1][j]; u_fake_s=u[i][j];
+                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=u[i][j]; v_fake_s=u[i][j-1];
                 // term_poisson_left=....
-                term_poisson_left=(v_fake_e-v_fake_w+u_fake_n-u_fake_s)/h/delta_t;
+                term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 res_p+=fabs(p[i][j]-(0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h)));
             }
         }
@@ -165,7 +165,7 @@ void cal_p(){
             cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<"  dev:    "<<dev_p<<endl;
             //init_p();
         } 
-    }while(pressure_not_converge());
+    }while(pressure_not_converge());//(pressure_not_converge());
     cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
 
 }
@@ -175,7 +175,7 @@ void cal_u(){
     for(int i=1; i<N-1;i++){
         for(int j=1; j<N; j++){
             u_1[i][j]=u[i][j];
-            u[i][j]=u_fake[i][j]-delta_t*(p[i][j]-p[i+1][j])/h;
+            u[i][j]=u_fake[i][j]-delta_t*(p[i+1][j]-p[i][j])/h;
             res_vel+=fabs(u[i][j]-u_1[i][j]);
         }
     }
@@ -209,7 +209,7 @@ double div_vel(){
     double div=0.0;
     for(i=1; i<N-1; i++){
         for(j=1; j<N-1; j++){
-            div+=fabs((v[i][j]-v[i][j-1])+(u[i-1][j]-u[i][j]));
+            div+=fabs((u[i][j]-u[i-1][j])+(v[i][j]-u[i][j-1]));
         }
     }
     return div;
