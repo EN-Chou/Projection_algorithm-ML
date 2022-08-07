@@ -5,34 +5,34 @@
 using namespace std;
 
 //User defined area
-#define Re 1200
-#define delta_t 0.0005
-#define record_per 200 //Record per every 0.1s is fine
-#define tol_vel pow(10, -12)
-#define tol_p pow(10, -3)
+#define Re 100
+#define delta_t 0.001
+#define record_per 100 //Record per every 0.1s is fine
+#define tol_vel pow(10, -10)
+#define tol_p pow(50, -1)
 #define N 81
 
 //Data exportatation 
 string directory="./raw_data/Re_"+to_string(Re); 
 ofstream raw_data(directory+"/flowfield.dat");
 ofstream step_time(directory+"/stepstoconvergence_timestep.dat");
-ofstream input_u_fake(directory+"/input_u_fake.dat");
 ofstream input_v_fake(directory+"/input_v_fake.dat");
+ofstream input_u_fake(directory+"/input_u_fake.dat");
 ofstream output_p(directory+"/output_p.dat");
 
 //Grid
-double p[N+1][N+1]={1.0}, u[N+1][N]={0.0}, v[N][N+1]={0.0}; //current
-double u_fake[N+1][N]={0.0}, v_fake[N][N+1]={0.0}; //u* and v*
-double p_1[N+1][N+1]={1.0}, u_1[N+1][N]={0.0}, v_1[N][N+1]={0.0}; //previous
-double p_c[N][N]={1.0}, u_c[N][N]={0.0}, v_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
+double p[N+1][N+1]={1.0}, v[N+1][N]={0.0}, u[N][N+1]={0.0}; //current
+double v_fake[N+1][N]={0.0}, u_fake[N][N+1]={0.0}; //u* and v*
+double p_1[N+1][N+1]={1.0}, v_1[N+1][N]={0.0}, u_1[N][N+1]={0.0}; //previous
+double p_c[N][N]={1.0}, v_c[N][N]={0.0}, u_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
 
 #define PI 3.1415926
 double h=1.0/(N-1.0);
 double res_vel=1.0, res_p=1.0, dev_p=1.0;
 int iteration, timestep=0;
 
-void init_u(), init_v(), init_p();
-void cal_fake_u(), cal_fake_v(), cal_p(), cal_u(), cal_v();
+void init_v(), init_u(), init_p();
+void cal_fake_v(), cal_fake_u(), cal_p(), cal_v(), cal_u();
 bool velocity_not_converge(), pressure_not_converge();
 void output(), collocate(), write(double* a, int x, int y, char name[]), write_train(), peek();
 double div_vel();
@@ -72,21 +72,21 @@ int main(){
 void init_u(){
     for(int i=0; i<N; i++){
         /*Implement*/
-        u[0][i]=2-u[1][i]; u_fake[0][i]=2-u_fake[1][i];
-        u[N][i]=-u[N-1][i]; u_fake[N][i]=-u_fake[N-1][i];
+        u[0][i]=-u[1][i]; u_fake[0][i]=-u_fake[1][i];
+        u[N-1][i]=-u[N-2][i]; u_fake[N-1][i]=-u_fake[N-2][i];
         u[i][0]=-u[i][1]; u_fake[i][0]=-u_fake[i][1];
-        u[i][N-1]=-u[i][N-2]; u_fake[i][N-1]=-u_fake[i][N-2];
+        u[i][N]=-u[i][N-1]; u_fake[i][N]=-u_fake[i][N-1];
     }
 }
 void init_v(){
     for(int i=0; i<N; i++){
         /*Implement*/
-        v[0][i]=-v[1][i]; v_fake[0][i]=-v_fake[1][i];
-        v[N-1][i]=-v[N-2][i]; v_fake[N-1][i]=-v_fake[N-2][i];
+        v[0][i]=2.0-v[1][i]; v_fake[0][i]=2.0-v_fake[1][i];
+        v[N][i]=-v[N-1][i]; v_fake[N][i]=-v_fake[N-1][i];
         v[i][0]=-v[i][1]; v_fake[i][0]=-v_fake[i][1];
-        v[i][N]=-v[i][N-1]; v_fake[i][N]=-v_fake[i][N-1];
+        v[i][N-1]=-v[i][N-2]; v_fake[i][N-1]=-v_fake[i][N-2];
     }
-    }
+}
 void init_p(){
     /*Implement*/
     for(int i=0; i<N+1; i++){
@@ -102,12 +102,12 @@ void cal_fake_u(){
     double v_p;
     double u_e, u_w, u_n, u_s;
     double C,D;
-    for(int i=1; i<N; i++){
-        for(int j=1; j<N-1; j++){
-            v_p=(v[i-1][j]+v[i][j]+v[i-1][j+1]+v[i][j+1])*0.25;
+    for(int i=1; i<N-1; i++){
+        for(int j=1; j<N; j++){
+            v_p=(v[i][j-1]+v[i][j]+v[i+1][j-1]+v[i+1][j])*0.25;
             u_e=(u[i][j]+u[i][j+1])*0.5; u_w=(u[i][j-1]+u[i][j])*0.5; u_n=(u[i-1][j]+u[i][j])*0.5; u_s=(u[i+1][j]+u[i][j])*0.5;
-            // C=u_p*(u_e-u_w)/h+v_p*(u_n-u_s)/h
-            C=u[i][j]*(u_e-u_w)/h+v_p*(u_n-u_s)/h;
+            // C=....
+            C=v_p*(u_e-u_w)/h+u[i][j]*(u_n-u_s)/h;
             // D=....
             D=1.0/Re*(u_e+u_w+u_n+u_s-4*u[i][j])/(h*h);
             u_fake[i][j]=(D-C)*delta_t+u[i][j];
@@ -121,10 +121,10 @@ void cal_fake_v(){
     double C,D;
     for(int i=1; i<N; i++){
         for(int j=1; j<N-1; j++){
-            u_p=(u[i][j-1]+u[i][j]+u[i+1][j-1]+u[i+1][j])*0.25;
+            u_p=(u[i-1][j]+u[i][j]+u[i-1][j+1]+u[i][j+1])*0.25;
             v_e=(v[i][j]+v[i][j+1])*0.5; v_w=(v[i][j-1]+v[i][j])*0.5; v_n=(v[i-1][j]+v[i][j])*0.5; v_s=(v[i+1][j]+v[i][j])*0.5;
-            // C=....
-            C=u_p*(v_e-v_w)/h+v[i][j]*(v_n-v_s)/h;
+            // C=v_p*(v_e-v_w)/h+u_p*(v_n-v_s)/h
+            C=v[i][j]*(v_e-v_w)/h+u_p*(v_n-v_s)/h;
             // D=....
             D=1.0/Re*(v_e+v_w+v_n+v_s-4*v[i][j])/(h*h);
             v_fake[i][j]=(D-C)*delta_t+v[i][j];
@@ -135,7 +135,7 @@ void cal_fake_v(){
 void cal_p(){
     int i,j;
     double term_poisson_left;
-    double u_fake_e, u_fake_w, v_fake_n, v_fake_s;
+    double v_fake_e, v_fake_w, u_fake_n, u_fake_s;
     iteration=0;
     do{
         iteration++, dev_p=0; double p_1=0;
@@ -143,9 +143,9 @@ void cal_p(){
         for(i=1; i<N+1; i++){
             for(j=1; j<N+1; j++){
                 p_1=p[i][j];
-                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i][j-1]; v_fake_n=v[i-1][j]; v_fake_s=v[i][j];
+                v_fake_e=v_fake[i][j]; v_fake_w=v_fake[i][j-1]; u_fake_n=u[i-1][j]; u_fake_s=u[i][j];
                 // term_poisson_left=....
-                term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
+                term_poisson_left=(v_fake_e-v_fake_w+u_fake_n-u_fake_s)/h/delta_t;
                 p[i][j]=0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h);
                 dev_p+=fabs(p[i][j]-p_1);
             }
@@ -154,9 +154,9 @@ void cal_p(){
         res_p=0;
         for(i=1;i<N+1; i++){
             for(j=1; j<N+1; j++){
-                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i][j-1]; v_fake_n=v[i-1][j]; v_fake_s=v[i][j];
+                v_fake_e=v_fake[i][j]; v_fake_w=v_fake[i][j-1]; u_fake_n=u[i-1][j]; u_fake_s=u[i][j];
                 // term_poisson_left=....
-                term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
+                term_poisson_left=(v_fake_e-v_fake_w+u_fake_n-u_fake_s)/h/delta_t;
                 res_p+=fabs(p[i][j]-(0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h)));
             }
         }
@@ -170,26 +170,26 @@ void cal_p(){
 
 }
 void cal_u(){
-    /*Implement*/
     res_vel=0;
-    for(int i=1; i<N;i++){
-        for(int j=1; j<N-1; j++){
-            u_1[i][j]=u[i][j];
-            u[i][j]=u_fake[i][j]-delta_t*(p[i][j+1]-p[i][j])/h;
-            res_vel=fabs(u[i][j]-u_1[i][j]);
-        }
-    }
-}
-void cal_v(){
     /*Implement*/
     for(int i=1; i<N-1;i++){
         for(int j=1; j<N; j++){
-            v_1[i][j]=v[i][j];
-            v[i][j]=v_fake[i][j]-delta_t*(p[i][j]-p[i+1][j])/h;
-            res_vel=fabs(v[i][j]-v_1[i][j]);
+            u_1[i][j]=u[i][j];
+            u[i][j]=u_fake[i][j]-delta_t*(p[i][j]-p[i+1][j])/h;
+            res_vel+=fabs(u[i][j]-u_1[i][j]);
         }
     }
     
+}
+void cal_v(){
+    /*Implement*/
+    for(int i=1; i<N;i++){
+        for(int j=1; j<N-1; j++){
+            v_1[i][j]=v[i][j];
+            v[i][j]=v_fake[i][j]-delta_t*(p[i][j+1]-p[i][j])/h;
+            res_vel+=fabs(v[i][j]-v_1[i][j]);
+        }
+    }
 }
 
 bool pressure_not_converge(){
@@ -209,7 +209,7 @@ double div_vel(){
     double div=0.0;
     for(i=1; i<N-1; i++){
         for(j=1; j<N-1; j++){
-            div+=fabs((u[i][j]-u[i][j-1])+(v[i-1][j]-v[i][j]));
+            div+=fabs((v[i][j]-v[i][j-1])+(u[i-1][j]-u[i][j]));
         }
     }
     return div;
@@ -217,8 +217,8 @@ double div_vel(){
 void collocate(){
     for(int i=0; i<N; i++){
         for(int j=0; j<N; j++){
-            u_c[i][j]=u[i][j]+u[i+1][j];
-            v_c[i][j]=v[i][j]+v[i][j+1];
+            v_c[i][j]=v[i][j]+v[i+1][j];
+            u_c[i][j]=u[i][j]+u[i][j+1];
             p_c[i][j]=0.25*(p[i][j]+p[i][j+1]+p[i+1][j]+p[i+1][j+1]);
 
         }
@@ -236,7 +236,7 @@ void output(){
     else{
         for(int i=0; i<N; i++){
             for(int j=0; j<N; j++){
-                raw_data<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<u_c[i][j]<<"   "<<v_c[i][j]<<"   "<<p_c[i][j]<<endl; 
+                raw_data<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<v_c[i][j]<<"   "<<u_c[i][j]<<"   "<<p_c[i][j]<<endl; 
 
             }
         }

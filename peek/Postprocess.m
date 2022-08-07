@@ -5,16 +5,16 @@
 
 load u.dat
 load v.dat
-velocity=(u.^2+v.^2).^0.5;
+velocity=(u.^2+v.^2).^0.5;figure(1)
 
-% figure(1)
-% contourf(u);
-% set(gca,'Ydir','reverse')
-% axis square
-% figure(2)
-% contourf(v);
-% set(gca,'Ydir','reverse')
-% axis square
+figure(1)
+contourf(u);
+set(gca,'Ydir','reverse')
+axis square
+figure(2)
+contourf(v);
+set(gca,'Ydir','reverse')
+axis square
 figure(3)
 hold on
 contourf(velocity);
