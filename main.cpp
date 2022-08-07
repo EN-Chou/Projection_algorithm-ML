@@ -6,10 +6,10 @@ using namespace std;
 
 //User defined area
 #define Re 100
-#define delta_t 0.0001
-#define record_per 1000 //Record per every 0.1s is fine
-#define tol_vel pow(10, -10)
-#define tol_p pow(50, -1)
+#define delta_t 0.001
+#define record_per 100 //Record per every 0.1s is fine
+#define tol_vel pow(10, -3) //=delta_t
+#define tol_p pow(10, -3)
 #define N 81
 
 //Data exportatation 
@@ -143,7 +143,7 @@ void cal_p(){
         for(i=1; i<N+1; i++){
             for(j=1; j<N+1; j++){
                 p_1=p[i][j];
-                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=u[i][j]; v_fake_s=u[i][j-1];
+                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=v[i][j]; v_fake_s=v[i][j-1];
                 // term_poisson_left=....
                 term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 p[i][j]=0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h);
@@ -154,7 +154,7 @@ void cal_p(){
         res_p=0;
         for(i=1;i<N+1; i++){
             for(j=1; j<N+1; j++){
-                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=u[i][j]; v_fake_s=u[i][j-1];
+                u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=v[i][j]; v_fake_s=v[i][j-1];
                 // term_poisson_left=....
                 term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 res_p+=fabs(p[i][j]-(0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h)));
@@ -209,7 +209,7 @@ double div_vel(){
     double div=0.0;
     for(i=1; i<N-1; i++){
         for(j=1; j<N-1; j++){
-            div+=fabs((u[i][j]-u[i-1][j])+(v[i][j]-u[i][j-1]));
+            div+=fabs((u[i][j]-u[i-1][j])+(v[i][j]-v[i][j-1]));
         }
     }
     return div;
