@@ -75,13 +75,13 @@ void init_u(){
         u[0][i]=-u[1][i]; u_fake[0][i]=-u_fake[1][i];
         u[N-1][i]=-u[N-2][i]; u_fake[N-1][i]=-u_fake[N-2][i];
         u[i][0]=-u[i][1]; u_fake[i][0]=-u_fake[i][1];
-        u[i][N]=-u[i][N-1]; u_fake[i][N]=-u_fake[i][N-1];
+        u[i][N]=2.0-u[i][N-1]; u_fake[i][N]=2.0-u_fake[i][N-1];
     }
 }
 void init_v(){
     for(int i=0; i<N; i++){
         /*Implement*/
-        v[0][i]=2.0-v[1][i]; v_fake[0][i]=2.0-v_fake[1][i];
+        v[0][i]=-v[1][i]; v_fake[0][i]=-v_fake[1][i];
         v[N][i]=-v[N-1][i]; v_fake[N][i]=-v_fake[N-1][i];
         v[i][0]=-v[i][1]; v_fake[i][0]=-v_fake[i][1];
         v[i][N-1]=-v[i][N-2]; v_fake[i][N-1]=-v_fake[i][N-2];
