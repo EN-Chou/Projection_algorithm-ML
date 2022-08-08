@@ -9,7 +9,7 @@ using namespace std;
 #define delta_t 0.001
 #define record_per 100 //Record per every 0.1s is fine
 #define tol_vel pow(10, -3) //=delta_t
-#define tol_p pow(10, -3)
+#define tol_p pow(10, -2)
 #define N 81
 
 //Data exportatation 
