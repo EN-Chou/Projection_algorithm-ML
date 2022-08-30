@@ -6,8 +6,8 @@ using namespace std;
 
 //User defined area
 #define Re 1000
-#define delta_t 0.0005
-#define record_per 200 //Record per every 0.1s is fine
+#define delta_t pow(10, -4)
+#define record_per 1000 //Record per every 0.1s is fine
 #define tol_vel pow(10, -12)
 #define tol_p pow(10, -3)
 #define N 81
@@ -165,7 +165,7 @@ void cal_p(){
             cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<"  dev:    "<<dev_p<<endl;
             //init_p();
         } 
-    }while(pressure_not_converge());
+    }while(0);//(pressure_not_converge());
     cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
 
 }
