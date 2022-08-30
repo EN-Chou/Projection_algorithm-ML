@@ -14,16 +14,17 @@ using namespace std;
 
 //Data exportatation 
 string directory="./raw_data/Re_"+to_string(Re); 
+string directory_ML="./ML/data/Re_"+to_string(Re); 
 ofstream raw_data(directory+"/flowfield.dat");
 ofstream step_time(directory+"/stepstoconvergence_timestep.dat");
-ofstream input_v_fake(directory+"/input_v_fake.dat");
-ofstream input_u_fake(directory+"/input_u_fake.dat");
-ofstream output_p(directory+"/output_p.dat");
+ofstream input_v_fake(directory_ML+"/input_v_fake.dat");
+ofstream input_u_fake(directory_ML+"/input_u_fake.dat");
+ofstream output_p(directory_ML+"/output_p.dat");
 
 //Grid
-double p[N+1][N+1]={1.0}, v[N+1][N]={0.0}, u[N][N+1]={0.0}; //current
-double v_fake[N+1][N]={0.0}, u_fake[N][N+1]={0.0}; //u* and v*
-double p_1[N+1][N+1]={1.0}, v_1[N+1][N]={0.0}, u_1[N][N+1]={0.0}; //previous
+double p[N+1][N+1]={1.0}, v[N+1][N+1]={0.0}, u[N+1][N+1]={0.0}; //current
+double v_fake[N+1][N+1]={0.0}, u_fake[N+1][N+1]={0.0}; //u* and v*
+double p_1[N+1][N+1]={1.0}, v_1[N+1][N+1]={0.0}, u_1[N+1][N+1]={0.0}; //previous
 double p_c[N][N]={1.0}, v_c[N][N]={0.0}, u_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
 
 #define PI 3.1415926
@@ -34,7 +35,7 @@ int iteration, timestep=0;
 void init_v(), init_u(), init_p();
 void cal_fake_v(), cal_fake_u(), cal_p(), cal_v(), cal_u();
 bool velocity_not_converge(), pressure_not_converge();
-void output(), collocate(), write(double* a, int x, int y, char name[]), write_train(), peek();
+void output(), output_train(), collocate(), write(double* a, int x, int y, char name[]), write_train(), peek();
 double div_vel();
 
 int main(){
@@ -45,8 +46,10 @@ int main(){
 
     while(velocity_not_converge()||timestep<100){
         cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel();
-        if(timestep%record_per==0)
+        if(timestep%record_per==0){
             output();
+            output_train();
+        }
 
         //step 1
         cal_fake_u();
@@ -226,7 +229,7 @@ void collocate(){
     return;
 }
 
-void output(){
+void output(){ //Tecplot format
     if(timestep==0){
         raw_data<<"VARIABLES=\"x\", \"y\", \"time\", \"u\", \"v\", \"p\""<<endl;
         raw_data<<"ZONE T=\"1\""<<endl;
@@ -261,4 +264,17 @@ void peek(){
 	write(&u_c[0][0], N, N, "./peek/u.dat");
 	write(&v_c[0][0], N, N, "./peek/v.dat");
     return;
+}
+
+void output_train(){
+    for(int i=0; i<N+1; i++){
+        for(int j=0; j<N+1; j++){
+            input_u_fake<< u_fake[i][j]<<"  ";
+            input_v_fake<< v_fake[i][j]<<"  ";
+            output_p<< p[i][j]<<"  ";
+        }
+    }
+    input_u_fake<< endl;
+    input_v_fake<< endl;
+    output_p<<endl;
 }

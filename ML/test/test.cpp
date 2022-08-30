@@ -58,7 +58,12 @@ void guess(){
         }
 
     }
-    cout<<"out: "<< out<<endl;
-
+    
+    for(int i=0; i<N+1; i++){
+        for(int j=0; j<N+1; j++){
+            cout<<test_p[i][j]<<"   "; //test_p->p
+        }
+        cout<<endl;
+    }
 
 }
