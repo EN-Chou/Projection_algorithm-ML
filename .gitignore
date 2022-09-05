@@ -2,3 +2,9 @@
 *.exe
 raw_data
 result
+peek/*.dat
+ML/test/build
+.vscode
+.vs
+/libtorch
+/ML/test/out
