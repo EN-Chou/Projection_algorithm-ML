@@ -3,13 +3,8 @@
 #include <math.h>
 #include <fstream>
 #include <string>
-<<<<<<< HEAD
 //#include <torch/torch.h>
 //#include <torch/script.h>
-=======
-#include <torch/torch.h>
-#include <torch/script.h>
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e
 //#include <../libtorch/include/torch/script.h>
 using namespace std;
 #define N 81
@@ -30,13 +25,9 @@ int main(){/*
 
 void guess(){
     /*once*/
-<<<<<<< HEAD
     // /home/enchou/git-repo
     // /mnt/c/Users/ENCHOU/Documents/git-repo
     torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/01_model_jit.pth");
-=======
-    torch::jit::script::Module model=torch::jit::load("/home/enchou/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/01_model_jit.pth");
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e
     double test[N+1][N+1]={0.0}; //這奇怪的bug，明明沒用到但不加就會core dump
     double u_st[0][(N+1)*(N+1)];
     auto options = torch::TensorOptions().dtype(torch::kFloat32);

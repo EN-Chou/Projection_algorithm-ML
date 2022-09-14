@@ -1,5 +1,4 @@
 *.dat
-<<<<<<< HEAD
 *.exe
 raw_data
 result
@@ -12,7 +11,3 @@ ML/test/build
 /build
 /ML/*.pth
 /ML/*.ipynb_checkpoints
-=======
-peek/*.dat
-ML/test/build
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e

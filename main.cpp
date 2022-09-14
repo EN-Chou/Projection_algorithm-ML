@@ -3,8 +3,8 @@
 #include <fstream>
 #include <string>
 //-----//
-//#include <torch/torch.h>
-//#include <torch/script.h>
+#include <torch/torch.h>
+#include <torch/script.h>
 using namespace std;
 
 //User defined area
@@ -12,7 +12,7 @@ using namespace std;
 #define delta_t 0.001
 #define record_per 100 //Record per every 0.1s is fine
 #define tol_vel pow(10, -3) //=delta_t
-#define tol_p pow(10, -2)
+#define tol_p pow(10, -12)
 #define N 81
 
 //Data exportatation 
@@ -29,6 +29,7 @@ double p[N+1][N+1]={1.0}, v[N+1][N+1]={0.0}, u[N+1][N+1]={0.0}; //current
 double v_fake[N+1][N+1]={0.0}, u_fake[N+1][N+1]={0.0}; //u* and v*
 double p_1[N+1][N+1]={1.0}, v_1[N+1][N+1]={0.0}, u_1[N+1][N+1]={0.0}; //previous
 double p_c[N][N]={1.0}, v_c[N][N]={0.0}, u_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
+double pred_p[N+1][N+1]={1.0}, pred_p_c[N][N]={0.0};
 
 #define PI 3.1415926
 double h=1.0/(N-1.0);
@@ -37,10 +38,7 @@ int iteration, timestep=0;
 
 void init_v(), init_u(), init_p();
 void cal_fake_v(), cal_fake_u(), cal_p(), cal_v(), cal_u();
-<<<<<<< HEAD
-//void guess_p();
-=======
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e
+void guess_p();
 bool velocity_not_converge(), pressure_not_converge();
 void output(), output_train(), collocate(), write(double* a, int x, int y, char name[]), write_train(), peek();
 double div_vel();
@@ -52,18 +50,11 @@ int main(){
     init_p();
 
     while(velocity_not_converge()||timestep<100){
-<<<<<<< HEAD
-        cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel()<<endl;
-        if(timestep%record_per==0){
-            output();
-            output_train();
-            peek();
-=======
         cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel();
         if(timestep%record_per==0){
             output();
             output_train();
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e
+            peek();
         }
 
         //step 1
@@ -72,8 +63,8 @@ int main(){
         cal_fake_v();
         init_v();
         //step 2
-        //if(timestep>100)
-            //guess_p();
+        if(0)//(timestep>100)
+            guess_p();
         cal_p();
         init_p();
         //step 3
@@ -237,14 +228,10 @@ double div_vel(){
 void collocate(){
     for(int i=0; i<N; i++){
         for(int j=0; j<N; j++){
-<<<<<<< HEAD
             v_c[i][j]=0.5*(v[i][j]+v[i+1][j]);
             u_c[i][j]=0.5*(u[i][j]+u[i][j+1]);
-=======
-            v_c[i][j]=v[i][j]+v[i+1][j];
-            u_c[i][j]=u[i][j]+u[i][j+1];
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e
             p_c[i][j]=0.25*(p[i][j]+p[i][j+1]+p[i+1][j]+p[i+1][j+1]);
+            pred_p_c[i][j]=0.25*(pred_p[i][j]+pred_p[i][j+1]+pred_p[i+1][j]+pred_p[i+1][j+1]);
 
         }
     }
@@ -263,10 +250,6 @@ void output(){ //Tecplot format
         for(int i=0; i<N; i++){
             for(int j=0; j<N; j++){
                 raw_data<<1-i*h<<" "<<j*h<<"    "<< timestep*delta_t<<" "<<v_c[i][j]<<"   "<<u_c[i][j]<<"   "<<p_c[i][j]<<endl; 
-<<<<<<< HEAD
-=======
-
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e
             }
         }
     }
@@ -275,7 +258,7 @@ void output(){ //Tecplot format
     
     
 }
-void write(double* a, int x, int y, char name[]) {
+void write(double* a, int x, int y, char* name) {
 	ofstream file(name);
 	int i, j;
 	for (i = 0; i < y; i++) {
@@ -290,9 +273,10 @@ void write(double* a, int x, int y, char name[]) {
 }
 void peek(){
     collocate();
-	write(&u_c[0][0], N, N, "./peek/u.dat");
-	write(&v_c[0][0], N, N, "./peek/v.dat");
-	write(&p_c[0][0], N, N, "./peek/p.dat");
+	write(&u_c[0][0], N, N, (char*)"./peek/u.dat");
+	write(&v_c[0][0], N, N, (char*)"./peek/v.dat");
+	write(&p_c[0][0], N, N, (char*)"./peek/p.dat");
+	write(&pred_p_c[0][0], N, N, (char*)"./peek/pred_p.dat");
     return;
 }
 
@@ -307,8 +291,51 @@ void output_train(){
     input_u_fake<< endl;
     input_v_fake<< endl;
     output_p<<endl;
-<<<<<<< HEAD
 }
-=======
+
+
+void guess_p(){
+    /*once*/
+    // /home/enchou/git-repo
+    // /mnt/c/Users/ENCHOU/Documents/git-repo
+    torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/01_model_jit.pth");
+    double test[N+1][N+1]={0.0}; //這奇怪的bug，明明沒用到但不加就會core dump
+    double u_st[0][(N+1)*(N+1)];
+    auto options = torch::TensorOptions().dtype(torch::kFloat32);
+    torch::Tensor x, out;
+    vector<torch::jit::IValue> input;
+    /*------*/
+
+
+        /*(input-array) 2D into 1D*/
+        for(int i=0; i<N+1; i++){
+            for(int j=0; j<N+1; j++){
+                u_st[0][i*(N+1)+j]=u_fake[i][j]; //test_u->u_fake
+            }
+        }
+
+        /*(input) array into tensor into vector*/
+        x=torch::from_blob(u_st, {1,(N+1)*(N+1)}, options);
+        input.clear();
+        input.push_back(x);
+
+        /*input into output(tensor)*/
+        out=model.forward(input).toTensor();
+
+        /*(output)tensor into 2D-array*/
+        for(int i=0; i<N+1; i++){
+            for(int j=0; j<N+1; j++){
+                pred_p[i][j]=out[0][i*(N+1)+j].item<float>(); //test_p->p
+            }
+        }
+
+
+    
+    for(int i=0; i<N+1; i++){
+        for(int j=0; j<N+1; j++){
+            //cout<<p[i][j]<<"   "; //test_p->p
+        }
+        //cout<<endl;
+    }
+
 }
->>>>>>> 7d55f6f9ed629caa6f5fd8cf7a29fbac6a2d626e
