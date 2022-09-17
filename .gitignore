@@ -11,3 +11,6 @@ ML/test/build
 /build
 /ML/*.pth
 /ML/*.ipynb_checkpoints
+*.txt
+/ML/test_2/build
+/ML/test_2/*.pth

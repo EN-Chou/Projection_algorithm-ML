@@ -18,6 +18,7 @@ using namespace std;
 //Data exportatation 
 string directory="./raw_data/Re_"+to_string(Re); 
 string directory_ML="./ML/data/Re_"+to_string(Re); 
+string directory_peek="./peek"; 
 ofstream raw_data(directory+"/flowfield.dat");
 ofstream step_time(directory+"/stepstoconvergence_timestep.dat");
 ofstream input_v_fake(directory_ML+"/input_v_fake.dat");
@@ -29,11 +30,11 @@ double p[N+1][N+1]={1.0}, v[N+1][N+1]={0.0}, u[N+1][N+1]={0.0}; //current
 double v_fake[N+1][N+1]={0.0}, u_fake[N+1][N+1]={0.0}; //u* and v*
 double p_1[N+1][N+1]={1.0}, v_1[N+1][N+1]={0.0}, u_1[N+1][N+1]={0.0}; //previous
 double p_c[N][N]={1.0}, v_c[N][N]={0.0}, u_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
-double pred_p[N+1][N+1]={1.0}, pred_p_c[N][N]={0.0};
+double prev_p[N+1][N+1]={1.0}, pred_p[N+1][N+1]={1.0}, pred_p_c[N][N]={0.0};
 
 #define PI 3.1415926
 double h=1.0/(N-1.0);
-double res_vel=1.0, res_p=1.0, dev_p=1.0;
+double res_vel=1.0, res_p=1.0, dev_p=1.0, dev_pred=1.0;
 int iteration, timestep=0;
 
 void init_v(), init_u(), init_p();
@@ -63,7 +64,7 @@ int main(){
         cal_fake_v();
         init_v();
         //step 2
-        if(0)//(timestep>100)
+        if(1)//(timestep>100)
             guess_p();
         cal_p();
         init_p();
@@ -74,7 +75,17 @@ int main(){
         init_v();
 
         timestep++;
-        //peek();
+        peek();
+        dev_pred=0;
+        dev_p=0;
+        for(int i=0; i<N+1; i++){
+            for(int j=0; j<N+1; j++){
+                dev_pred+=fabs(pred_p[i][j]-prev_p[i][j]);
+                dev_p+=fabs(p[i][j]-prev_p[i][j]);
+                prev_p[i][j]=p[i][j];
+            }
+        }
+        cout<<"  dev_pred: "<< dev_pred<<"  dev_p: "<< dev_p<< endl;
     }
     
     return 0;
@@ -177,7 +188,7 @@ void cal_p(){
             //init_p();
         } 
     }while(pressure_not_converge());//(pressure_not_converge());
-    cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p<<endl;
+    cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p;
 
 }
 void cal_u(){
@@ -258,25 +269,30 @@ void output(){ //Tecplot format
     
     
 }
-void write(double* a, int x, int y, char* name) {
-	ofstream file(name);
-	int i, j;
-	for (i = 0; i < y; i++) {
-		for (j = 0; j < x; j++) {
-			file << *(a + i * x + j) << ",";
-		}
-		file << endl;
-	}
 
-	file.close();
-	return;
-}
 void peek(){
     collocate();
-	write(&u_c[0][0], N, N, (char*)"./peek/u.dat");
-	write(&v_c[0][0], N, N, (char*)"./peek/v.dat");
-	write(&p_c[0][0], N, N, (char*)"./peek/p.dat");
-	write(&pred_p_c[0][0], N, N, (char*)"./peek/pred_p.dat");
+
+	ofstream peek_u(directory_peek+"/u.dat");
+	ofstream peek_v(directory_peek+"/v.dat");
+	ofstream peek_p(directory_peek+"/p.dat");
+	ofstream peek_pred_p(directory_peek+"/pred_p.dat");
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			peek_u << u_c[i][j] << ",";
+			peek_v << v_c[i][j] << ",";
+			peek_p << p_c[i][j] << ",";
+			peek_pred_p << pred_p_c[i][j] << ",";
+		}
+		peek_u << endl;
+		peek_v << endl;
+		peek_p << endl;
+		peek_pred_p << endl;
+	}
+	peek_u.close();
+	peek_v.close();
+	peek_p.close();
+	peek_pred_p.close();
     return;
 }
 
@@ -293,19 +309,17 @@ void output_train(){
     output_p<<endl;
 }
 
-
 void guess_p(){
     /*once*/
     // /home/enchou/git-repo
     // /mnt/c/Users/ENCHOU/Documents/git-repo
-    torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/01_model_jit.pth");
+    torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/model_jit.pth");
     double test[N+1][N+1]={0.0}; //這奇怪的bug，明明沒用到但不加就會core dump
-    double u_st[0][(N+1)*(N+1)];
-    auto options = torch::TensorOptions().dtype(torch::kFloat32);
+    double u_st[1][(N+1)*(N+1)];
+    auto options = torch::TensorOptions().dtype(torch::kFloat64); //fix
     torch::Tensor x, out;
     vector<torch::jit::IValue> input;
     /*------*/
-
 
         /*(input-array) 2D into 1D*/
         for(int i=0; i<N+1; i++){
@@ -325,17 +339,8 @@ void guess_p(){
         /*(output)tensor into 2D-array*/
         for(int i=0; i<N+1; i++){
             for(int j=0; j<N+1; j++){
-                pred_p[i][j]=out[0][i*(N+1)+j].item<float>(); //test_p->p
+                pred_p[i][j]=out[0][i*(N+1)+j].item<double>(); //test_p->p 
             }
         }
-
-
-    
-    for(int i=0; i<N+1; i++){
-        for(int j=0; j<N+1; j++){
-            //cout<<p[i][j]<<"   "; //test_p->p
-        }
-        //cout<<endl;
-    }
 
 }

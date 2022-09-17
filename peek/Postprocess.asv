@@ -28,7 +28,7 @@ velocity=(u.^2+v.^2).^0.5;
 % Benchmark-u
 figure(1)
 hold on
-%plot(Re_100_u, y_b, 'o')
+%plot(Re_100_u, y_b'o')
 plot(u(:, 41), pt, 'x')
 axis square
 hold off
@@ -53,7 +53,7 @@ axis square
 set(gcf,'position',[x_shift+800 y_shift+500 500 500])
 
 % v
-figure(4)
+figure(2)
 contourf(v);
 xlabel('i')
 ylabel('j')
@@ -62,14 +62,14 @@ axis square
 set(gcf,'position',[x_shift+1300 y_shift+500 500 500])
 
 % velocity
-figure(5)
+figure(3)
 imagesc(velocity);
 xlabel('i')
 ylabel('j')
 colorbar
 axis square
 set(gca,'YDir','normal') 
-set(gcf,'position',[x_shift+1050 y_shift+500 500 500])
+set(gcf,'position',[x_shift+800 y_shift+0 500 500])
 
 % p
 figure(6)
@@ -79,7 +79,7 @@ ylabel('j')
 colorbar
 axis square
 set(gca,'YDir','normal') 
-set(gcf,'position',[x_shift+800 y_shift+0 500 500])
+set(gcf,'position',[x_shift+1300 y_shift+0 500 500])
 
 % p_pred
 % figure(7)
@@ -89,5 +89,5 @@ set(gcf,'position',[x_shift+800 y_shift+0 500 500])
 % colorbar
 % axis square
 % set(gca,'YDir','normal') 
-% set(gcf,'position',[x_shift+1300 y_shift+0 500 500])
+% set(gcf,'position',[1300 0 500 500])
 
