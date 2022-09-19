@@ -2,18 +2,18 @@
 #include <math.h>
 #include <fstream>
 #include <string>
-//-----//
 #include <torch/torch.h>
 #include <torch/script.h>
 using namespace std;
 
-//User defined area
+//Macros
 #define Re 100
 #define delta_t 0.001
-#define record_per 100 //Record per every 0.1s is fine
+#define record_per 1 //Record per every 0.1s is fine
 #define tol_vel pow(10, -3) //=delta_t
-#define tol_p pow(10, -12)
+#define tol_p pow(10, -6)
 #define N 81
+#define ML false
 
 //Data exportatation 
 string directory="./raw_data/Re_"+to_string(Re); 
@@ -30,11 +30,11 @@ double p[N+1][N+1]={1.0}, v[N+1][N+1]={0.0}, u[N+1][N+1]={0.0}; //current
 double v_fake[N+1][N+1]={0.0}, u_fake[N+1][N+1]={0.0}; //u* and v*
 double p_1[N+1][N+1]={1.0}, v_1[N+1][N+1]={0.0}, u_1[N+1][N+1]={0.0}; //previous
 double p_c[N][N]={1.0}, v_c[N][N]={0.0}, u_c[N][N]={0.0}, vel_c[N][N]={0.0}; //collocated grid
-double prev_p[N+1][N+1]={1.0}, pred_p[N+1][N+1]={1.0}, pred_p_c[N][N]={0.0};
+double pred_p[N+1][N+1]={1.0};
 
 #define PI 3.1415926
 double h=1.0/(N-1.0);
-double res_vel=1.0, res_p=1.0, dev_p=1.0, dev_pred=1.0;
+double res_vel=1.0, res_p=1.0, dev_p=1.0;
 int iteration, timestep=0;
 
 void init_v(), init_u(), init_p();
@@ -45,13 +45,11 @@ void output(), output_train(), collocate(), write(double* a, int x, int y, char 
 double div_vel();
 
 int main(){
-    //test section
     init_u();
     init_v();
     init_p();
 
     while(velocity_not_converge()||timestep<100){
-        cout<<"Time:    "<< timestep*delta_t<<" residual(vel):   "<<res_vel<<"    div_vel:    "<<div_vel();
         if(timestep%record_per==0){
             output();
             output_train();
@@ -64,8 +62,7 @@ int main(){
         cal_fake_v();
         init_v();
         //step 2
-        if(1)//(timestep>100)
-            guess_p();
+        if(1) guess_p();
         cal_p();
         init_p();
         //step 3
@@ -76,16 +73,6 @@ int main(){
 
         timestep++;
         peek();
-        dev_pred=0;
-        dev_p=0;
-        for(int i=0; i<N+1; i++){
-            for(int j=0; j<N+1; j++){
-                dev_pred+=fabs(pred_p[i][j]-prev_p[i][j]);
-                dev_p+=fabs(p[i][j]-prev_p[i][j]);
-                prev_p[i][j]=p[i][j];
-            }
-        }
-        cout<<"  dev_pred: "<< dev_pred<<"  dev_p: "<< dev_p<< endl;
     }
     
     return 0;
@@ -159,6 +146,14 @@ void cal_p(){
     double term_poisson_left;
     double u_fake_e, u_fake_w, v_fake_n, v_fake_s;
     iteration=0;
+        
+    dev_p=0;
+    for(i=0; i<N+1; i++){
+        for(j=0; j<N+1; j++){
+            pred_p[i][j]=p[i][j];
+        }
+    }
+    
     do{
         iteration++, dev_p=0; double p_1=0;
         /*Implement*/
@@ -166,7 +161,6 @@ void cal_p(){
             for(j=1; j<N+1; j++){
                 p_1=p[i][j];
                 u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=v[i][j]; v_fake_s=v[i][j-1];
-                // term_poisson_left=....
                 term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 p[i][j]=0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h);
                 dev_p+=fabs(p[i][j]-p_1);
@@ -177,18 +171,21 @@ void cal_p(){
         for(i=1;i<N+1; i++){
             for(j=1; j<N+1; j++){
                 u_fake_e=u_fake[i][j]; u_fake_w=u_fake[i-1][j]; v_fake_n=v[i][j]; v_fake_s=v[i][j-1];
-                // term_poisson_left=....
                 term_poisson_left=(u_fake_e-u_fake_w+v_fake_n-v_fake_s)/h/delta_t;
                 res_p+=fabs(p[i][j]-(0.25*(p[i][j-1]+p[i][j+1]+p[i-1][j]+p[i+1][j]-term_poisson_left*h*h)));
             }
         }
-
-        if(0){//iteration%1000
-            cout<<"Iteration:   "<<iteration<<" residual(p):   "<<res_p<<"  dev:    "<<dev_p<<endl;
-            //init_p();
-        } 
-    }while(pressure_not_converge());//(pressure_not_converge());
-    cout<<" Iteration:   "<<iteration<<" residual(p):   "<<res_p;
+    }while(pressure_not_converge());
+    
+    for(i=0; i<N+1; i++){
+        for(j=0; j<N+1; j++){
+            dev_p+=fabs(pred_p[i][j]-p[i][j]);
+        }
+    }
+    //[Time](timestep*delta_t) [Vel_deviation](res_vel) [Vel-divergence](div_vel()) 
+    //[Iterations solving for P](iteration) 
+    //[Prediction error of P](dev_p)
+    cout<< timestep*delta_t <<" "<< iteration << "  "<< dev_p<<endl;
 
 }
 void cal_u(){
@@ -242,7 +239,6 @@ void collocate(){
             v_c[i][j]=0.5*(v[i][j]+v[i+1][j]);
             u_c[i][j]=0.5*(u[i][j]+u[i][j+1]);
             p_c[i][j]=0.25*(p[i][j]+p[i][j+1]+p[i+1][j]+p[i+1][j+1]);
-            pred_p_c[i][j]=0.25*(pred_p[i][j]+pred_p[i][j+1]+pred_p[i+1][j]+pred_p[i+1][j+1]);
 
         }
     }
@@ -276,23 +272,19 @@ void peek(){
 	ofstream peek_u(directory_peek+"/u.dat");
 	ofstream peek_v(directory_peek+"/v.dat");
 	ofstream peek_p(directory_peek+"/p.dat");
-	ofstream peek_pred_p(directory_peek+"/pred_p.dat");
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {
 			peek_u << u_c[i][j] << ",";
 			peek_v << v_c[i][j] << ",";
 			peek_p << p_c[i][j] << ",";
-			peek_pred_p << pred_p_c[i][j] << ",";
 		}
 		peek_u << endl;
 		peek_v << endl;
 		peek_p << endl;
-		peek_pred_p << endl;
 	}
 	peek_u.close();
 	peek_v.close();
 	peek_p.close();
-	peek_pred_p.close();
     return;
 }
 
@@ -309,38 +301,35 @@ void output_train(){
     output_p<<endl;
 }
 
+
 void guess_p(){
-    /*once*/
-    // /home/enchou/git-repo
-    // /mnt/c/Users/ENCHOU/Documents/git-repo
-    torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/model_jit.pth");
+    // [Linux]/home/enchou/git-repo [Windows]/mnt/c/Users/ENCHOU/Documents/git-repo
+    torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/model_jit_B.pth");
     double test[N+1][N+1]={0.0}; //這奇怪的bug，明明沒用到但不加就會core dump
     double u_st[1][(N+1)*(N+1)];
-    auto options = torch::TensorOptions().dtype(torch::kFloat64); //fix
+    auto options = torch::TensorOptions().dtype(torch::kFloat64); 
     torch::Tensor x, out;
     vector<torch::jit::IValue> input;
-    /*------*/
 
-        /*(input-array) 2D into 1D*/
-        for(int i=0; i<N+1; i++){
-            for(int j=0; j<N+1; j++){
-                u_st[0][i*(N+1)+j]=u_fake[i][j]; //test_u->u_fake
-            }
+    /*Flatten*/
+    for(int i=0; i<N+1; i++){
+        for(int j=0; j<N+1; j++){
+            u_st[0][i*(N+1)+j]=u_fake[i][j]; 
         }
+    }
 
-        /*(input) array into tensor into vector*/
-        x=torch::from_blob(u_st, {1,(N+1)*(N+1)}, options);
-        input.clear();
-        input.push_back(x);
+    /*(input) array -> tensor -> vector*/
+    x=torch::from_blob(u_st, {1,(N+1)*(N+1)}, options);
+    input.clear();
+    input.push_back(x);
 
-        /*input into output(tensor)*/
-        out=model.forward(input).toTensor();
+    /*output=model(input)*/
+    out=model.forward(input).toTensor();
 
-        /*(output)tensor into 2D-array*/
-        for(int i=0; i<N+1; i++){
-            for(int j=0; j<N+1; j++){
-                pred_p[i][j]=out[0][i*(N+1)+j].item<double>(); //test_p->p 
-            }
+    /*(output)tensor -> 2D-array*/
+    for(int i=0; i<N+1; i++){
+        for(int j=0; j<N+1; j++){
+            p[i][j]=out[0][i*(N+1)+j].item<double>(); 
         }
-
+    }
 }

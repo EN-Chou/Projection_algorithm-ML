@@ -28,7 +28,7 @@ velocity=(u.^2+v.^2).^0.5;
 % Benchmark-u
 figure(1)
 hold on
-%plot(Re_100_u, y_b, 'o')
+plot(Re_100_u, y_b, 'o')
 plot(u(:, 41), pt, 'x')
 axis square
 hold off
@@ -37,7 +37,7 @@ set(gcf,'position',[x_shift+0 y_shift+500 500 500])
 % Benchmark-v
 figure(2)
 hold on
-%plot(x_b, Re_100_v, 'o')
+plot(x_b, Re_100_v, 'o')
 plot(pt, v(41, :), 'x')
 axis square
 hold off
