@@ -23,6 +23,7 @@ ofstream raw_data(directory+"/flowfield.dat");
 ofstream step_time(directory+"/stepstoconvergence_timestep.dat");
 ofstream input_v_fake(directory_ML+"/input_v_fake.dat");
 ofstream input_u_fake(directory_ML+"/input_u_fake.dat");
+ofstream input_div_u_fake(directory_ML+"/input_div_u_fake.dat");
 ofstream output_p(directory_ML+"/output_p.dat");
 
 //Grid
@@ -289,37 +290,39 @@ void peek(){
 }
 
 void output_train(){
-    for(int i=0; i<N+1; i++){
-        for(int j=0; j<N+1; j++){
-            input_u_fake<< u_fake[i][j]<<"  ";
-            input_v_fake<< v_fake[i][j]<<"  ";
+    for(int i=1; i<N; i++){
+        for(int j=1; j<N; j++){
+            //input_u_fake<< u_fake[i][j]<<"  ";
+            //input_v_fake<< v_fake[i][j]<<"  ";
+            input_div_u_fake<< (u_fake[i][j]-u_fake[i-1][j]+v_fake[i][j]-v_fake[i][j-1])<<"  ";
             output_p<< p[i][j]<<"  ";
         }
     }
-    input_u_fake<< endl;
-    input_v_fake<< endl;
+    //input_u_fake<< endl;
+    //input_v_fake<< endl;
+    input_div_u_fake<< endl;
     output_p<<endl;
 }
 
 
 void guess_p(){
     // [Linux]/home/enchou/git-repo [Windows]/mnt/c/Users/ENCHOU/Documents/git-repo
-    torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/model_jit_B.pth");
+    torch::jit::script::Module model=torch::jit::load("/mnt/c/Users/ENCHOU/Documents/git-repo/Fractional-Step-FDM-Staggered-Lid-Driven-Cavity-/ML/model_jit_D.pth");
     double test[N+1][N+1]={0.0}; //這奇怪的bug，明明沒用到但不加就會core dump
-    double u_st[1][(N+1)*(N+1)];
+    double u_st[1][(N-1)*(N-1)];
     auto options = torch::TensorOptions().dtype(torch::kFloat64); 
     torch::Tensor x, out;
     vector<torch::jit::IValue> input;
 
     /*Flatten*/
-    for(int i=0; i<N+1; i++){
-        for(int j=0; j<N+1; j++){
-            u_st[0][i*(N+1)+j]=u_fake[i][j]; 
+    for(int i=0; i<N-1; i++){
+        for(int j=0; j<N-1; j++){
+            u_st[0][i*(N-1)+j]=u_fake[i+1][j+1]-u_fake[i][j+1]+v_fake[i+1][j+1]-v_fake[i+1][j]; 
         }
     }
 
     /*(input) array -> tensor -> vector*/
-    x=torch::from_blob(u_st, {1,(N+1)*(N+1)}, options);
+    x=torch::from_blob(u_st, {1,(N-1)*(N-1)}, options);
     input.clear();
     input.push_back(x);
 
@@ -327,9 +330,9 @@ void guess_p(){
     out=model.forward(input).toTensor();
 
     /*(output)tensor -> 2D-array*/
-    for(int i=0; i<N+1; i++){
-        for(int j=0; j<N+1; j++){
-            p[i][j]=out[0][i*(N+1)+j].item<double>(); 
+    for(int i=0; i<N-1; i++){
+        for(int j=0; j<N-1; j++){
+            p[i+1][j+1]=out[0][i*(N-1)+j].item<double>(); 
         }
     }
 }
