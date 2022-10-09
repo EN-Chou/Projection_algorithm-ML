@@ -29,7 +29,7 @@ velocity=(u.^2+v.^2).^0.5;
 figure(1)
 hold on
 plot(Re_100_u, y_b, 'o')
-plot(u(:, 41), pt, 'x')
+plot(u(:, 41), pt)
 axis square
 hold off
 set(gcf,'position',[x_shift+0 y_shift+500 500 500])
@@ -38,7 +38,7 @@ set(gcf,'position',[x_shift+0 y_shift+500 500 500])
 figure(2)
 hold on
 plot(x_b, Re_100_v, 'o')
-plot(pt, v(41, :), 'x')
+plot(pt, v(41, :))
 axis square
 hold off
 set(gcf,'position',[x_shift+0 y_shift+0 500 500])
